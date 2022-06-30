@@ -1,12 +1,39 @@
-import json
 import apache_beam as beam
 
-
-def read_data():
-    with open("clean-data.json") as file:
-        return json.loads(file.read())
-
+from sources.file import read_data
+from lib.conversation.split import splitConversationIntoMessages
+from lib.conversation.avg_word_count import CombineAverage
+from lib.conversation.format_results import formatConversationResult
+from lib.message.metrics import calculateMessageMetrics
+from lib.message.group_by_ticket import byTicket
+from lib.namedtuple_to_kv import namedTupleToKV
 
 p = beam.Pipeline()
-p | beam.Create(read_data()) | beam.Map(print)
+
+messages = (p
+  | beam.Create(read_data())
+  | beam.FlatMap(splitConversationIntoMessages)
+  | beam.Map(calculateMessageMetrics)
+)
+
+metricsByTicket = (messages
+  | "group metrics" >> beam.GroupBy(byTicket)
+    .aggregate_field(lambda message: message['word_count'], sum, 'total_word_count')
+    .aggregate_field(lambda message: message['word_count'], min, 'min_message_word_count')
+    .aggregate_field(lambda message: message['word_count'], max, 'max_message_word_count')
+    .aggregate_field(lambda message: message['word_count'], CombineAverage(), 'average_message_word_count')
+  | beam.Map(namedTupleToKV)
+)
+
+messagesByTicket = messages | "group messages" >> beam.GroupBy(byTicket)
+
+combined = { 'metrics': metricsByTicket, 'messages': messagesByTicket } | beam.CoGroupByKey()
+
+results = (combined
+  | beam.Values()
+  | beam.Map(formatConversationResult)
+)
+
+results | beam.io.WriteToText('results.txt')
+
 p.run()
