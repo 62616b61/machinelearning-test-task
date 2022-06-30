@@ -1,6 +1,6 @@
 from apache_beam import CombineFn
 
-class CombineAverage(CombineFn):
+class ConversationAvgWordCount(CombineFn):
   def create_accumulator(self):
     # (sum, count)
     return (0, 0)
