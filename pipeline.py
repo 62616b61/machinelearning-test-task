@@ -3,6 +3,7 @@ import apache_beam as beam
 from sources.file import read_data
 from lib.conversation.split import splitConversationIntoMessages
 from lib.conversation.avg_word_count import ConversationAvgWordCount
+from lib.conversation.tone import ConversationTone
 from lib.conversation.format_results import formatConversationResult
 from lib.message.metrics import calculateMessageMetrics
 from lib.message.group_by_ticket import byTicket
@@ -22,6 +23,7 @@ metricsByTicket = (messages
     .aggregate_field(lambda message: message['word_count'], min, 'min_message_word_count')
     .aggregate_field(lambda message: message['word_count'], max, 'max_message_word_count')
     .aggregate_field(lambda message: message['word_count'], ConversationAvgWordCount(), 'average_message_word_count')
+    .aggregate_field(lambda message: message['tone'], ConversationTone(), 'tone')
   | beam.Map(namedTupleToKV)
 )
 
