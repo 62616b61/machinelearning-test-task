@@ -1,4 +1,5 @@
 .vscode
 results.txt*
-beam-temp-results-*
+processed-data.json*
+beam-temp-*
 __pycache__
