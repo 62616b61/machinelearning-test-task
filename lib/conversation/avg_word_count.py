@@ -11,14 +11,14 @@ class ConversationAvgWordCount(CombineFn):
     return (sum + input, count + 1)
 
   def merge_accumulators(self, accumulators):
-    totalSum = 0
-    totalCount = 0
+    total_sum = 0
+    total_count = 0
 
     for sum, count in accumulators:
-      totalSum += sum
-      totalCount += count
+      total_sum += sum
+      total_count += count
       
-    return (totalSum, totalCount)
+    return (total_sum, total_count)
 
   def extract_output(self, accumulator):
     sum, count = accumulator

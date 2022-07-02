@@ -17,14 +17,14 @@ class ConversationTone(CombineFn):
     return accumulator
 
   def merge_accumulators(self, accumulators):
-    totalPositive = 0
-    totalNegative = 0
+    total_positive = 0
+    total_negative = 0
 
     for positive, negative in accumulators:
-      totalPositive += positive
-      totalNegative += negative
+      total_positive += positive
+      total_negative += negative
       
-    return (totalPositive, totalNegative)
+    return (total_positive, total_negative)
 
   def extract_output(self, accumulator):
     positive, negative = accumulator

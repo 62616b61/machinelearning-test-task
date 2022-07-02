@@ -1,4 +1,4 @@
-def formatConversationResult(result):
+def format_conversation_results(result):
   metrics = result['metrics'][0]
   messages = result['messages'][0]
   conversation = result['conversation'][0]

@@ -1,11 +1,11 @@
-from lib.message.word_count import messageWordCount
-from lib.message.tone import messageTone
+from lib.message.word_count import message_word_count
+from lib.message.tone import message_tone
 
-def calculateMessageMetrics(message):
-  wordCount = messageWordCount(message['html_body'])
-  tone = messageTone(message['html_body'])
+def calculate_message_metrics(message):
+  word_count = message_word_count(message['html_body'])
+  tone = message_tone(message['html_body'])
 
-  message['word_count'] = wordCount
+  message['word_count'] = word_count
   message['tone'] = tone
 
   return message

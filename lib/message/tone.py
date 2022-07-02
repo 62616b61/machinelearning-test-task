@@ -1,9 +1,9 @@
-def messageTone(messageBody):
-  if (len(messageBody) == 0):
+def message_tone(message_body):
+  if (len(message_body) == 0):
     return 'unknown'
 
-  firstWord = messageBody.split(' ', 1)[0]
-  isEven = len(firstWord) % 2 == 0
-  tone = 'positive' if isEven else 'negative'
+  first_word = message_body.split(' ', 1)[0]
+  is_even = len(first_word) % 2 == 0
+  tone = 'positive' if is_even else 'negative'
   
   return tone
