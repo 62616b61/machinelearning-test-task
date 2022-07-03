@@ -1,6 +1,4 @@
-import json
 import logging
-import tempfile
 import unittest
 import pytest
 
