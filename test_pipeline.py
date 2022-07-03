@@ -7,7 +7,7 @@ import pytest
 import pipeline
 
 from apache_beam.testing.util import open_shards
-from sources.file import read_data
+from lib.read_data import read_data
 
 class PipelineTest(unittest.TestCase):
   def create_temp_file(self):

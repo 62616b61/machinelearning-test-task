@@ -5,11 +5,11 @@ import apache_beam as beam
 
 from apache_beam.options.pipeline_options import PipelineOptions
 
-from sources.file import read_data
 from lib.conversation.avg_word_count import ConversationAvgWordCount
 from lib.conversation.tone import ConversationTone
 from lib.conversation.format_results import format_conversation_results
 from lib.message.metrics import calculate_message_metrics
+from lib.read_data import read_data
 from lib.group_by_ticket import by_ticket
 from lib.namedtuple_to_kv import namedtuple_to_kv
 
