@@ -1,5 +1,5 @@
 from lib.message.word_count import message_word_count
-from lib.message.tone import message_tone
+from lib.tone import message_tone
 
 def calculate_message_metrics(message):
   word_count = message_word_count(message['html_body'])
