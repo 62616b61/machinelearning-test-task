@@ -34,8 +34,7 @@ def main(argv=None):
     # Read conversations
     data = (p
       | "read data" >> beam.Create(read_data(known_args.input))
-      | "group conversatins by ticket" >> beam.GroupBy(by_ticket)
-      | "get first element" >> beam.MapTuple(lambda key, value: (key, value[0]))
+      | "extract ticket id as key" >> beam.WithKeys(by_ticket)
     )
     
     def parse_conversations(key, conversation):
