@@ -8,10 +8,10 @@ from apache_beam.options.pipeline_options import PipelineOptions
 from lib.conversation.avg_word_count import ConversationAvgWordCount
 from lib.conversation.tone import ConversationTone
 from lib.conversation.format_results import format_conversation_results
-from lib.message.metrics import calculate_message_metrics
+from lib.message.metrics import MessageMetrics
 from lib.read_data import read_data
 from lib.group_by_ticket import by_ticket
-from lib.namedtuple_to_kv import namedtuple_to_kv
+from lib.prop_from_keyed_pcol import ExtractPropertyFromKeyedPCollection
 
 def main(argv=None):
   parser = argparse.ArgumentParser()
@@ -32,40 +32,44 @@ def main(argv=None):
   pipeline_options = PipelineOptions(pipeline_args)
   with beam.Pipeline(options=pipeline_options) as p:
     # Read conversations
-    conversations = p | "read data" >> beam.Create(read_data(known_args.input))
+    data = (p
+      | "read data" >> beam.Create(read_data(known_args.input))
+      | "extract ticket id as key" >> beam.WithKeys(by_ticket)
+    )
+    
+    def parse_conversations(key, conversation):
+      # todo: look into dictionary comprehensions
+      clean_conversation = {k: v for k, v in conversation.items() if k != 'messages'}
+      return (key, clean_conversation)
+    
+    conversations = (data
+      | "conversations" >> beam.MapTuple(parse_conversations))
+    
+    messages = (data
+      | "messages" >> beam.MapTuple(lambda key, value: (key, value['messages']))
+      | "message metrics" >> beam.CombineValues(MessageMetrics()))
+      
+    keyed_word_counts = (messages
+      | "extract word_count prop" >> beam.CombineValues(ExtractPropertyFromKeyedPCollection('word_count')))
 
-    # Flat map all messages and calculate metrics
-    messages_with_metrics = (conversations
-      | "extract messages" >> beam.FlatMap(lambda x: x['messages'])
-      | "calculate metrics" >> beam.Map(calculate_message_metrics))
-
-    # Group messages by ticket id and calculate conversation metrics
-    metrics_by_ticket = (messages_with_metrics
-      | "group metrics by ticket" >> beam.GroupBy(by_ticket)
-        .aggregate_field(lambda message: message['word_count'], sum, 'total_word_count')
-        .aggregate_field(lambda message: message['word_count'], min, 'min_message_word_count')
-        .aggregate_field(lambda message: message['word_count'], max, 'max_message_word_count')
-        .aggregate_field(lambda message: message['word_count'], ConversationAvgWordCount(), 'average_message_word_count')
-        .aggregate_field(lambda message: message['tone'], ConversationTone(), 'tone')
-
-      # Aggregation via aggregate_field produces named tuples,
-      # which must be translated to key value pairs in order to be used in CoGroupByKey
-      | "namedtuple to kv" >> beam.Map(namedtuple_to_kv))
-
-    # Group messages by ticket id
-    messages_by_ticket = messages_with_metrics | "group messages by ticket" >> beam.GroupBy(by_ticket)
-
-    # Group conversations by ticket id
-    conversations_by_ticket = (conversations
-      | "group conversations by ticket" >> beam.GroupBy(by_ticket)
-      # Assuming ticket_id corresponds to only one conversation object
-      | "get first element" >> beam.MapTuple(lambda key, value: (key, value[0])))
+    keyed_tones = (messages
+      | "extract tone prop" >> beam.CombineValues(ExtractPropertyFromKeyedPCollection('tone')))
+        
+    total_word_count = keyed_word_counts | "sum" >> beam.CombineValues(sum)
+    min_message_word_count = keyed_word_counts | "min" >> beam.CombineValues(min)
+    max_message_word_count = keyed_word_counts | "max" >> beam.CombineValues(max)
+    average_message_word_count = keyed_word_counts | "avg" >> beam.CombineValues(ConversationAvgWordCount())
+    conversation_tone = keyed_tones | "tone" >> beam.CombineValues(ConversationTone())
 
     # Combine clean conversations, messages with metrics and conversation metrics
     results = ({
-      'metrics': metrics_by_ticket,
-      'messages': messages_by_ticket,
-      'conversation': conversations_by_ticket
+      'conversation': conversations,
+      'messages': messages,
+      'total_word_count': total_word_count,
+      'min_message_word_count': min_message_word_count,
+      'max_message_word_count': max_message_word_count,
+      'average_message_word_count': average_message_word_count,
+      'tone': conversation_tone,
     }
       | "group by common key" >> beam.CoGroupByKey()
       | "extract values" >> beam.Values()
